@@ -1,27 +1,31 @@
-const jwt = require("../utils/jwt")
+const jwt = require("../utils/jwt");
 
-const asureAuth = (req, res, next) => {
-    if (!req.headers.authorization) {
-        return res.status(403).send({ msg: "No tienes autenticación" })
+const ensureAuth = (req, res, next) => {
+  const { authorization } = req.headers;
+  if (!authorization || !authorization.startsWith("Bearer ")) {
+    return res
+      .status(403)
+      .send({ msg: "La petición no tiene la cabecera de autentificación" });
+  }
+
+  const token = authorization.split(" ")[1];
+
+  try {
+    const payload = jwt.decoded(token);
+    const { expiration_date } = payload;
+    const currentTime = Date.now();
+
+    if (expiration_date <= currentTime) {
+      return res.status(400).send({ msg: "El token ha expirado" });
     }
 
-    const token = req.headers.authorization.replace("Bearer ", "")
+    req.user = payload;
+    next();
+  } catch (error) {
+    return res.status(400).send({ msg: "El token no es válido" });
+  }
+};
 
-    try {
-        const payload = jwt.decoded(token)
-        const { exp } = payload
-        /* Verificar nombre currentDate o currentData */
-        const currentData = new Date().getTime()
-        
-        if(exp <= currentData){
-            return res.status(401).send({ msg: "El token ha expirado" })
-        }
-
-        req.user = payload
-        next()
-    } catch (error) {
-        return res.status(401).send({ msg: "Token no válido" })
-    }
-}
-
-module.exports = { asureAuth }
+module.exports = {
+    ensureAuth,
+};
