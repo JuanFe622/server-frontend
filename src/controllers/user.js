@@ -31,29 +31,6 @@ const getUsers = async (req, res) => {
   }
 };
 
-// const createUser = async (req, res) => {
-//   try {
-//     const { firstname, lastname, departament, city, email, password, avatar } =
-//       req.body;
-//     const user = new User({ ...req.body, active: false });
-
-//     const salt = await bcrypt.genSalt(10);
-//     const hashedPassword = await bcrypt.hash(password, salt);
-//     user.password = hashedPassword;
-
-//     if (req.files.avatar) {
-//       const imagePath = image.getFilePath(req.files.avatar);
-//       user.avatar = imagePath;
-//     }
-
-//     const userStored = await user.save();
-//     res.status(201).send(userStored);
-//   } catch (error) {
-//     console.error("Error: ", error);
-//     res.status(400).send(error);
-//   }
-// };
-
 const createUser = async (req, res) => {
     try {
       const userData = req.body;
@@ -75,8 +52,45 @@ const createUser = async (req, res) => {
     }
   };
 
+const updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userData = req.body;
+
+    if (userData.password) {
+      const salt = await bcrypt.genSalt(10);
+      const hashPassword = await bcrypt.hash(userData.password, salt);
+      userData.password = hashPassword;
+    } else {
+      delete userData.password;
+    }
+
+    if (req.files && req.files.avatar) {
+      const imagePath = image.getFilePath(req.files.avatar);
+      userData.avatar = imagePath;
+    }
+
+    await User.findByIdAndUpdate({ _id: id}, userData);
+    res.status(200).send({ msg: "Usuario actualizado" });
+  } catch (error) {
+    res.status(400).send({ msg: "Error al actualizar el usuario" });
+  }
+};
+
+const deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await User.findByIdAndDelete(id);
+    res.status(200).send({ msg: "Usuario eliminado" });
+  } catch (error) {
+    res.status(400).send({ msg: "Error al eliminar el usuario" });
+  }
+};
+
 module.exports = {
   getMe,
   getUsers,
   createUser,
+  updateUser,
+  deleteUser,
 };
