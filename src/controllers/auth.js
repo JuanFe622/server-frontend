@@ -6,22 +6,22 @@ const axios = require("axios");
 // Funcion que se encarga de registrar un usuario
 
 const register = async (req, res) => {
-  const { firstname, lastname, departament, city, email, password } = req.body;
+  const { firstname, lastname, departament, city, email, new_password } = req.body;
 
   const response = await axios.get(
     "https://www.datos.gov.co/resource/xdk5-pm3f.json"
   );
   const data = response.data;
 
-  const departamento = data.find(
-    (item) => item.departamento.toLowerCase() === departament.toLowerCase()
-  );
+  // const departamento = data.find(
+  //   (item) => item.departamento.toLowerCase() === departament.toLowerCase()
+  // );
 
-  const ciudades = data
-    .filter(
-      (item) => item.departamento.toLowerCase() === departament.toLowerCase()
-    )
-    .map((item) => item.municipio.toLowerCase());
+  // const ciudades = data
+  //   .filter(
+  //     (item) => item.departamento.toLowerCase() === departament.toLowerCase()
+  //   )
+  //   .map((item) => item.municipio.toLowerCase());
 
   if (!firstname) {
     return res.status(400).send({ msg: "El nombre es requerido" });
@@ -31,48 +31,48 @@ const register = async (req, res) => {
     return res.status(400).send({ msg: "El apellido es requerido" });
   }
 
-  if (!departament) {
-    return res.status(400).send({ msg: "El departamento es requerido" });
-  }
+  // if (!departament) {
+  //   return res.status(400).send({ msg: "El departamento es requerido" });
+  // }
 
-  if (!departamento) {
-    return res
-      .status(400)
-      .json({ error: "El departamento ingresado no es válido." });
-  }
+  // if (!departamento) {
+  //   return res
+  //     .status(400)
+  //     .json({ error: "El departamento ingresado no es válido." });
+  // }
 
-  if (!city) {
-    return res.status(400).send({ msg: "La ciudad es requerida" });
-  }
+  // if (!city) {
+  //   return res.status(400).send({ msg: "La ciudad es requerida" });
+  // }
 
-  if (!ciudades.includes(city.toLowerCase())) {
-    return res
-      .status(400)
-      .json({
-        error: "La ciudad ingresada no pertenece al departamento seleccionado.",
-      });
-  }
+  // if (!ciudades.includes(city.toLowerCase())) {
+  //   return res
+  //     .status(400)
+  //     .json({
+  //       error: "La ciudad ingresada no pertenece al departamento seleccionado.",
+  //     });
+  // }
 
   if (!email) {
     return res.status(400).send({ msg: "El email es requerido" });
   }
 
-  if (!password) {
+  if (!new_password) {
     return res.status(400).send({ msg: "La constraseña es requerida" });
   }
 
   const salt = bcrypt.genSaltSync(10);
-  const hashPassword = bcrypt.hashSync(password, salt);
+  const hashPassword = bcrypt.hashSync(new_password, salt);
 
   const user = new User({
     firstname,
     lastname,
-    departament,
-    city,
+    // departament,
+    // city,
     email: email.toLowerCase(),
     role: "user",
     active: false,
-    password: hashPassword,
+    new_password: hashPassword,
   });
 
   try {
@@ -86,10 +86,10 @@ const register = async (req, res) => {
 // Funcion que se encarga de loguear un usuario
 
 const login = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, new_password } = req.body;
 
   try {
-    if (!email || !password) {
+    if (!email || !new_password) {
       throw new Error("El email y la constraseña son obligatorios");
     }
 
@@ -99,7 +99,7 @@ const login = async (req, res) => {
       throw new Error("El usuario no existe");
     }
 
-    const check = await bcrypt.compare(password, userStorage.password);
+    const check = await bcrypt.compare(new_password, userStorage.new_password);
     if (!check) {
       throw new Error("Contraseña incorrecta");
     }

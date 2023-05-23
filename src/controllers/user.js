@@ -37,8 +37,8 @@ const createUser = async (req, res) => {
       const user = new User({ ...userData, active: false });
   
       const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(userData.password, salt);
-      user.password = hashedPassword;
+      const hashedPassword = await bcrypt.hash(userData.new_password, salt);
+      user.new_password = hashedPassword;
   
       if (req.files.avatar) {
         const imagePath = image.getFilePath(req.files.avatar);
@@ -57,12 +57,12 @@ const updateUser = async (req, res) => {
     const { id } = req.params;
     const userData = req.body;
 
-    if (userData.password) {
+    if (userData.new_password) {
       const salt = await bcrypt.genSalt(10);
-      const hashPassword = await bcrypt.hash(userData.password, salt);
-      userData.password = hashPassword;
+      const hashPassword = await bcrypt.hash(userData.new_password, salt);
+      userData.new_password = hashPassword;
     } else {
-      delete userData.password;
+      delete userData.new_password;
     }
 
     if (req.files && req.files.avatar) {
