@@ -2,26 +2,48 @@ const bcrypt = require("bcryptjs");
 const User = require("../models/user");
 const jwt = require("../utils/jwt");
 const axios = require("axios");
+const validator = require("validator");
 
 // Funcion que se encarga de registrar un usuario
 
 const register = async (req, res) => {
-  const { firstname, lastname, departament, city, email, new_password } = req.body;
+  const { firstname, lastname, departament, city, email, new_password} =
+    req.body;
 
-  const response = await axios.get(
-    "https://www.datos.gov.co/resource/xdk5-pm3f.json"
+  // Obtener los datos de la base de datos de los departamentos y ciudades
+  
+  const departamentosResponse = await axios.get(
+    'https://www.datos.gov.co/resource/xdk5-pm3f.json?$select=departamento&$group=departamento'
   );
-  const data = response.data;
+  const departamentosData = departamentosResponse.data;
 
-  // const departamento = data.find(
-  //   (item) => item.departamento.toLowerCase() === departament.toLowerCase()
-  // );
+  // Validar que el departamento exista en la base de datos
+  const departamento = departamentosData.find(
+    (item) => item.departamento.toLowerCase() === departament.toLowerCase()
+  );
 
-  // const ciudades = data
-  //   .filter(
-  //     (item) => item.departamento.toLowerCase() === departament.toLowerCase()
-  //   )
-  //   .map((item) => item.municipio.toLowerCase());
+  if (!departamento) {
+    console.log('El departamento no existe en la base de datos.');
+    return;
+  }
+
+  // Obtener los datos de las ciudades del departamento seleccionado
+  const ciudadesResponse = await axios.get(
+    `https://www.datos.gov.co/resource/xdk5-pm3f.json?departamento=${departament}&$select=municipio&$group=municipio`
+  );
+  const ciudadesData = ciudadesResponse.data;
+
+  // Validar que la ciudad pertenezca al departamento
+  const ciudad = ciudadesData.find(
+    (item) => item.municipio.toLowerCase() === city.toLowerCase()
+  );
+
+  if (!ciudad) {
+    console.log('La ciudad no pertenece al departamento especificado.');
+    return;
+  }
+
+  // Validar que los campos no esten vacios
 
   if (!firstname) {
     return res.status(400).send({ msg: "El nombre es requerido" });
@@ -30,31 +52,19 @@ const register = async (req, res) => {
   if (!lastname) {
     return res.status(400).send({ msg: "El apellido es requerido" });
   }
-
-  // if (!departament) {
-  //   return res.status(400).send({ msg: "El departamento es requerido" });
-  // }
-
-  // if (!departamento) {
-  //   return res
-  //     .status(400)
-  //     .json({ error: "El departamento ingresado no es válido." });
-  // }
-
-  // if (!city) {
-  //   return res.status(400).send({ msg: "La ciudad es requerida" });
-  // }
-
-  // if (!ciudades.includes(city.toLowerCase())) {
-  //   return res
-  //     .status(400)
-  //     .json({
-  //       error: "La ciudad ingresada no pertenece al departamento seleccionado.",
-  //     });
-  // }
-
+  
   if (!email) {
     return res.status(400).send({ msg: "El email es requerido" });
+  }
+
+  // Validar que el email sea institucional
+
+  if (!validator.isEmail(email)) {
+    return res.status(400).send({ msg: "El email no es válido" });
+  }
+
+  if (!email.endsWith("@autonoma.edu.co")) {
+    return res.status(400).send({ msg: "El email debe ser institucional" });
   }
 
   if (!new_password) {
@@ -67,8 +77,8 @@ const register = async (req, res) => {
   const user = new User({
     firstname,
     lastname,
-    // departament,
-    // city,
+    departament,
+    city,
     email: email.toLowerCase(),
     role: "user",
     active: false,
@@ -132,7 +142,6 @@ function refreshAccessToken(req, res) {
     const accessToken = jwt.createAccessToken(userStorage);
     // Enviar respuesta al cliente
     return res.status(200).send({ accessToken });
-
   } catch (error) {
     console.error("Error del servidor: ", error);
     return res.status(500).send({ msg: "Error del servidor" });
